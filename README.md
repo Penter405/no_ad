@@ -5,7 +5,7 @@ overwrite script in that extention from below codes
 </pre>
 ```javascript
 // ==UserScript==
-// @name         YouTube Leave → Back → Video
+// @name         YouTube URL Change Back
 // @match        https://www.youtube.com/*
 // @grant        none
 // ==/UserScript==
@@ -13,42 +13,51 @@ overwrite script in that extention from below codes
 (() => {
     'use strict';
 
-    let clickedVideo = null;
-    let clicked = false;
-    let originalURL = location.href;
+    let lastURL = location.href;
+    let returning = false;
 
-    document.addEventListener('click', (e) => {
-        const video = e.target.closest('a[href*="/watch"]');
-
-        if (!video) return;
-
-        clickedVideo = video.href;
-        originalURL = location.href;
-        clicked = true;
-
-        console.log('[YT] Video clicked:', clickedVideo);
-    }, true);
-
-
-    // YouTube SPA navigation
     setInterval(() => {
-        if (!clicked) return;
+        const currentURL = location.href;
 
-        if (location.href !== originalURL) {
-            clicked = false;
-
-            console.log('[YT] URL changed');
-            console.log('[YT] Leaving and returning:', clickedVideo);
-
-            // Leave current video
-            history.back();
-
-            // Enter the video again
-            setTimeout(() => {
-                location.href = clickedVideo;
-            }, 150);
+        // URL 沒變
+        if (currentURL === lastURL) {
+            return;
         }
+
+        console.log('[YT] URL changed:', lastURL, '→', currentURL);
+
+        lastURL = currentURL;
+
+        // 只處理進入影片
+        if (!new URL(currentURL).pathname.startsWith('/watch')) {
+            return;
+        }
+
+        // 如果這是我們自己回來的，不再觸發
+        if (returning) {
+            returning = false;
+            console.log('[YT] Returned to video');
+            return;
+        }
+
+        const videoURL = currentURL;
+
+        console.log('[YT] Leave video');
+
+        // 回上一頁
+        history.back();
+
+        // 再進入影片
+        setTimeout(() => {
+            returning = true;
+
+            console.log('[YT] Return to video:', videoURL);
+
+            location.href = videoURL;
+        }, 300);
+
     }, 50);
 
 })();
 ```
+
